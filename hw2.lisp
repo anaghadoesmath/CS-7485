@@ -548,7 +548,6 @@ Anagha Gokul
 (property (e :aaexpr)
   (== (sael->aa (aa->sael e)) e))
 
-...
 
 ;; Define an evaluator, aaeval, for ACL2s arithmetic expressions
 ;; (similar to saeval). What is interesting here is that I am using
