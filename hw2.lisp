@@ -161,7 +161,7 @@ Anagha Gokul
 ; (modeling-admit-defs) is better and (modeling-admit-all) is the
 ; best.
 
-(modeling-start)
+(modeling-admit-all)
 
 #|
 
