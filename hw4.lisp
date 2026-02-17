@@ -673,10 +673,6 @@ Q3. Consider the following definitions.
   :rule-classes nil)
 
 
-
-
-
-
 #|
 
  Q4. We will now reason about sorting algorithms. Consider the
@@ -741,295 +737,60 @@ Q3. Consider the following definitions.
 
 ;helpers
 ;sortedp over total order
-(definec sortedp (x :tl) :bool
+(definec orderedp (x :tl) :bool
   (match x
     (() t)
     ((&) t)                    
     ((a b . r)
      (and (<<= a b)
-          (sortedp (cons b r))))))
+          (orderedp (cons b r))))))
+
+;helper lemmas
+(property less-insert-<< (a b :all l :tl)
+  :hyps (and (orderedp l)
+             (<< b a))
+  (== (insert b (less a l))
+      (less a (insert b l))))
 
 
-(definec all-< (x :tl a :all) :bool
-  (match x
-    (() t)
-    ((e . es)
-     (and (<< e a)
-          (all-< es a)))))
+(property orderedp-<=-less-a* (a :all l :tl)
+  :hyps (and (orderedp l)
+             (or (endp l)
+                 (<<= a (car l))))
+  (== (less a l)
+      nil))
 
-(definec all->= (x :tl a :all) :bool
-  (match x
-    (() t)
-    ((e . es)
-     (and (<<= a e)
-          (all->= es a)))))
-
-;multiset stuff
-(definec memberp (a :all x :tl) :bool
-  (match x
-    (() nil)
-    ((e . es) (or (== a e)
-                  (memberp a es)))))
-
-(definec count-occ (a :all x :tl) :nat
-  (match x
-    (() 0)
-    ((e . es)
-     (+ (if (== a e) 1 0)
-        (count-occ a es)))))
-
-(definec remove1a (a :all x :tl) :tl
-  (match x
-    (() ())
-    ((e . es)
-     (if (== a e)
-         es
-       (cons e (remove1a a es))))))
+(property orderedp-<=-notless-a* (a :all l :tl)
+  :hyps (and (orderedp l)
+             (or (endp l)
+                 (<<= a (car l))))
+  (== (notless a l)
+      l))
 
 
-;directional x is contained in y as a multiset
-(definec subbagp (x :tl y :tl) :bool
-  (match x
-    (() t)
-    ((e . es)
-     (and (posp (count-occ e y))
-          (subbagp es (remove1a e y))))))
-;equivalence
+(property less-insert-<<== (a b :all l :tl)
+  :hyps (<<= a b)
+  (== (less a (insert b l))
+      (less a l)))
 
-;pair order facts
-(defthm <<=antisym
-  (implies (and (<<= x y) (<<= y x))
-           (equal x y))
-  :rule-classes nil
-  :hints (("Goal" :in-theory (enable <<=))))
-
-;sortedness of isort
-(property sortedp-insert (a :all x :tl)
-  (implies (sortedp x)
-           (sortedp (insert a x)))
-  :hints (("Goal" :in-theory (enable sortedp insert <<=))))
-
-(property sortedp-isort (x :tl)
-  (sortedp (isort x))
-  :hints (("Goal" :in-theory (enable sortedp isort insert <<=))))
-
-(property all-<-less (p :all xs :tl)
-  (all-< (less p xs) p)
-  :hints (("Goal" :in-theory (enable all-< less))))
-
-(property all->=-notless (p :all xs :tl)
-  (all->= (notless p xs) p)
-  :hints (("Goal" :in-theory (enable all->= notless <<=))))
-
-(property sortedp-app-pivot (l r :tl p :all)
-  (implies (and (sortedp l)
-                (sortedp r)
-                (all-< l p)
-                (all->= r p))
-           (sortedp (app l (list p) r)))
-  :hints (("Goal" :in-theory (enable sortedp all-< all->= <<=))))
-
-;preservation lemmas
-(property all-<-less-a (p :all xs :tl a :all)
-  (implies (all-< xs a)
-           (all-< (less p xs) a))
-  :hints (("Goal"
-           :in-theory (enable all-< less <<=))))
-
-(property all-<-notless-a (p :all xs :tl a :all)
-  (implies (all-< xs a)
-           (all-< (notless p xs) a))
-  :hints (("Goal"
-           :in-theory (enable all-< notless <<=))))
-
-(property all-<-qsort (xs :tl a :all)
-  (implies (all-< xs a)
-           (all-< (qsort xs) a))
-  :hints (("Goal"
-           :induct (qsort xs)
-           :in-theory (enable qsort all-< less notless <<= 
-                              all-<-less-a all-<-notless-a))))
-
-(property all-<-cdr (xs :tl a :all)
-  (implies (and (consp xs)
-                (all-< xs a))
-           (all-< (cdr xs) a))
-  :hints (("Goal" :in-theory (enable all-<))))
-
-(property all->=-cdr (xs :tl a :all)
-  (implies (and (consp xs)
-                (all->= xs a))
-           (all->= (cdr xs) a))
-  :hints (("Goal" :in-theory (enable all->=))))
-
-(property all-<-qsort (xs :tl a :all)
-  (implies (all-< xs a)
-           (all-< (qsort xs) a))
-  :hints (("Goal"
-           :in-theory (enable qsort all-< less notless <<=)
-           :use ((:instance all-<-cdr (xs xs) (a a))
-                 (:instance all-<-less-a
-                            (p (car xs)) (xs (cdr xs)) (a a))
-                 (:instance all-<-notless-a
-                            (p (car xs)) (xs (cdr xs)) (a a))))))
-
-(property all->=-less-when-all->= (xs :tl a :all p :all)
-  (implies (all->= xs a)
-           (all->= (less p xs) a))
-  :hints (("Goal" :in-theory (enable all->= less))))
+(property insert-preserves-order (a :all l :tl)
+  :hyps (orderedp l)
+  (orderedp (insert a l)))
 
 
-(property all->=-notless-when-all->= (xs :tl a :all p :all)
-  (implies (all->= xs a)
-           (all->= (notless p xs) a))
-  :hints (("Goal" :in-theory (enable all->= notless <<=))))
+;lemmas
+(property L2 (a :all l :tl)
+  (== (isort (notless a l))
+      (notless a (isort l))))
 
+(property L3 (a :all l :tl)
+  :hyps (orderedp l)
+  (== (app (less a l)
+           (cons a (notless a l)))
+      (insert a l)))
 
-(property all->=-qsort (xs :tl a :all)
-  (implies (all->= xs a)
-           (all->= (qsort xs) a))
-  :hints (("Goal"
-           :in-theory (enable qsort all->= less notless <<=)
-           :use ((:instance all->=-cdr (xs xs) (a a))
-                 (:instance all->=-less-when-all->=
-                            (xs (cdr xs)) (a a) (p (car xs)))
-                 (:instance all->=-notless-when-all->=
-                            (xs (cdr xs)) (a a) (p (car xs)))))))
-
-(property app-list-cons (l r :tl p :all)
-  (== (app l (list p) r)
-      (app l (cons p r)))
-  :hints (("Goal" :in-theory (enable app))))
-
-;pasting lemma
-;sub lemmas
-(property sortedp-cons-from-all->= (p :all r :tl)
-  (implies (and (sortedp r)
-                (all->= r p))
-           (sortedp (cons p r)))
-  :hints (("Goal" :in-theory (enable sortedp all->= <<=))))
-
-(property sortedp-cdr (x :tl)
-  (implies (and (consp x)
-                (sortedp x))
-           (sortedp (cdr x)))
-  :hints (("Goal" :in-theory (enable sortedp))))
-
-(property all-<-car (x :tl p :all)
-  (implies (and (consp x)
-                (all-< x p))
-           (<< (car x) p))
-  :hints (("Goal" :in-theory (enable all-<))))
-
-(property <<-implies-<<= (a b :all)
-  (implies (<< a b)
-           (<<= a b))
-  :hints (("Goal" :in-theory (enable <<=))))
-
-(property cdr-app (l y :tl)
-  (implies (consp l)
-           (== (cdr (app l y))
-               (app (cdr l) y)))
-  :hints (("Goal" :in-theory (enable app))))
-
-(property app-cons-to-list (l r :tl p :all)
-  (== (app l (cons p r))
-      (app l (list p) r))
-  :hints (("Goal" :in-theory (enable app))))
-
-
-
-
-
-
-
-
-
-;multiset machinery
-(property memberp-iff-count-pos (a :all x :tl)
-  (iff (memberp a x)
-       (posp (count-occ a x)))
-  :hints (("Goal" :in-theory (enable memberp count-occ))))
-
-(property count-occ-remove1a-self (a :all x :tl)
-  (implies (posp (count-occ a x))
-           (== (count-occ a (remove1a a x))
-               (1- (count-occ a x))))
-  :hints (("Goal" :in-theory (enable count-occ remove1a))))
-
-(property count-occ-remove1-other (a b :all x :tl)
-  (implies (not (== a b))
-           (== (count-occ a (remove1a b x))
-               (count-occ a x)))
-  :hints (("Goal" :in-theory (enable count-occ remove1a))))
-
-;subagp implies counts are monotone-not needed?
-(property count-occ-subbagp-monotone (a :all x y :tl)
-  (implies (subbagp x y)
-           (<= (count-occ a x)
-               (count-occ a y)))
-  :hints (("Goal" :in-theory (enable subbagp count-occ remove1))))
-
-(property count-occ-insert-self (a :all x :tl)
-  (== (count-occ a (insert a x))
-      (1+ (count-occ a x)))
-  :hints (("Goal" :in-theory (enable insert count-occ <<=))))
-
-(property count-occ-insert-other (b a :all x :tl)
-  (implies (not (== b a))
-           (== (count-occ b (insert a x))
-               (count-occ b x)))
-  :hints (("Goal" :in-theory (enable insert count-occ <<=))))
-
-(property count-occ-insert-cons (b a :all x :tl)
-  (== (count-occ b (insert a x))
-      (count-occ b (cons a x)))
-  :hints (("Goal" :in-theory (enable count-occ)
-           :use ((:instance count-occ-insert-self (a a) (x x))
-                 (:instance count-occ-insert-other (b b) (a a) (x x))))))
-
-;isort doesnt change multiset
-(property count-occ-isort (a :all x :tl)
-  (== (count-occ a (isort x))
-      (count-occ a x))
-  :hints (("Goal" :in-theory (enable isort count-occ)
-           :use ((:instance count-occ-insert-cons
-                            (b a) (a (car x)) (x (isort (cdr x))))))))
-
-;count over append
-(property count-occ-app (a :all x y :tl)
-  (== (count-occ a (app x y))
-      (+ (count-occ a x) (count-occ a y)))
-  :hints (("Goal" :in-theory (enable app count-occ))))
-
-;cpount of singleton
-(property count-occ-list1 (a b :all)
-  (== (count-occ a (list b))
-      (if (== a b) 1 0))
-  :hints (("Goal" :in-theory (enable count-occ))))
-
-;partition lemma
-(property count-occ-partition (a p :all xs :tl)
-  (== (count-occ a (app (less p xs) (list p) (notless p xs)))
-      (count-occ a (cons p xs)))
-  :hints (("Goal"
-           :in-theory (enable less notless count-occ app)
-           :use ((:instance count-occ-app
-                            (a a)
-                            (x (less p xs))
-                            (y (app (list p) (notless p xs))))
-                 (:instance count-occ-app
-                            (a a)
-                            (x (list p))
-                            (y (notless p xs)))
-                 (:instance count-occ-list1 (a a) (b p))))))
-
-;counts preserved by qsort
-
-
-
-
-
+(property L4 (l :tl)
+  (orderedp (isort l)))
 #|
 
  Extra Credit 1. (25 points each, all or nothing)
@@ -1039,11 +800,54 @@ Q3. Consider the following definitions.
  under <<=, and permutations of each other, they are equal. Second,
  prove that qsort and isort return ordered permutations of their
  input.
+|#
 
+(definec permp (x y :tl) :bool
+  (== (isort x)
+      (isort y)))
+
+(property isort-ord-idempotent (x :tl)
+  :hyps (orderedp x)
+  (== (isort x) x))
+
+(property perms-are-equal (x y :tl)
+  :hyps (and (orderedp x)
+             (orderedp y)
+             (permp x y))
+  :rule-classes nil
+  (== x y))
+
+(property permp-isort-input (x :tl)
+  (permp (isort x) x))
+
+(property permp-qsort-input (x :tl)
+  (permp (qsort x) x))
+
+;if x and y are ordered true lists, under <<=, and permutations of each other, they are equal
+(property ordered-permp->equal (x y :tl)
+  :hyps (and (orderedp x)
+             (orderedp y)
+             (permp x y))
+  :rule-classes nil
+  (== x y))
+
+;qsort and isort return ordered permutations of input
+(property isort-ordered (x :tl)
+  (orderedp (isort x)))
+
+(property qsort-ordered (x :tl)
+  (orderedp (qsort x)))
+
+#|
  2. Do the homework in another theorem prover of your choice. Try to
  make it as equivalent as possible. Provide a summary of your
  findings.  This is only recommended for those of you that already
  have experience with other theorem provers. ACL2 is not allowed this
  time.
-
 |#
+
+
+
+
+
+
