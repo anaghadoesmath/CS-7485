@@ -351,7 +351,7 @@ Q3. Consider the following definitions.
 |#
 
 ; Define, m-if-flat, a measure function for if-flat.
-; Q3a. We are using the definition on page ...
+; Q3a. We are using the definition on page 133
 
 
 ; Q3b. Fill in the definition. This definition must be accepted by	; ACL2s.
