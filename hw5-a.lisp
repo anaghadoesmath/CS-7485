@@ -1181,7 +1181,7 @@ Anagha (put the names of the group members here)
       (unless (assoc a out :test #'equal)
         (push (cons a t) out)))))
 
-(defun dp-assignment-lookup (var assignment)"
+(defun dp-assignment-lookup (var assignment)
   (let ((hit (assoc var assignment :test #'equal)))
     (if hit
         (values (cdr hit) t)
